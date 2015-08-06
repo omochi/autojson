@@ -1,0 +1,82 @@
+{
+	"types": {
+		"Box": {
+			"type": "Class",
+			"let": ["value"],
+			"fields": {
+				"value": "value"
+			}
+		},
+		"Pair": {
+			"type": "Class",
+			"let": ["value0", "value1"],
+			"fields": {
+				"value0": "value0",
+				"value1": "value1"
+			}
+		},
+		"IntBox": {
+			"type": "Apply",
+			"target": {
+				"type": "Ref",
+				"name": "Box"
+			},
+			"params": {
+				"value": "Int"
+			}
+		},
+		"StringBox": {
+			"type": "Apply",
+			"target": {
+				"type": "Ref",
+				"name": "Box"
+			},
+			"params": {
+				"value": {
+					"type": "Ref",
+					"name": "String"
+				}
+			}
+		},
+		"BoxBox": {
+			"type": "Class",
+			"let": ["Box"],
+			"fields": {
+				"box": {
+					"type": "Apply",
+					"target": {
+						"type": "Ref",
+						"name": "Box"
+					},
+					"params": {
+						"value": "value"
+					}
+				}
+			}	
+		},
+		"RefBox": {
+			"type": "Apply",
+			"let": ["value"],
+			"target": {
+				"type": "Ref",
+				"name": "Box"
+			},
+			"params": {
+				"value": "value"
+			}
+		},
+		"Hoge": {
+			"type": "Apply",
+			"target": {
+				"type": "Class",
+				"let": ["aaa"],
+				"fields": {
+					"aaa": "aaa"
+				}
+			},
+			"params": {
+				"aaa": "Int"
+			}
+		}
+	}
+}

@@ -1,0 +1,31 @@
+{
+	"types": {
+		"B": {
+			"let": ["T"],
+			"type": "Class",
+			"fields": {
+				"t": "T"
+			}
+		},
+		"A": {
+			"type": "Class",
+			"fields": {
+				"intB": {
+					"type": "Apply",
+					"target": "B",
+					"params": {
+						"T": "Int"
+					}
+				},
+				"floatB2": {
+					"type": "Apply",
+					"target": "B2",
+					"params": {
+						"T": "Float"
+					}
+				}
+			}
+		},
+		"B2": "B"
+	}
+}

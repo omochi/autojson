@@ -1,0 +1,30 @@
+{
+	"types": {
+		"B": {
+			"let": ["T"],
+			"type": "Class",
+			"fields": {
+				"anonyType": {
+					"type": "Class",
+					"fields": {
+						"field1": "T"
+					}
+				}
+			}
+		},
+		"A": {
+			"type": "Apply",
+			"target": "B",
+			"params": {
+				"T": "C"
+			}
+		},
+		"C": {
+			"type": "Class",
+			"fields": {
+				"name": "String",
+				"age": "Int"
+			}
+		}
+	}
+}
