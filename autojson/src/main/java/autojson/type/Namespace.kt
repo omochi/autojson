@@ -12,13 +12,15 @@ import java.util.*
 class Namespace(
         val parent: Namespace?,
         val key: TypeName,
-        private val table: MutableMap<TypeName, Type> = LinkedHashMap()
+        private val mutableTable: MutableMap<TypeName, Type> = LinkedHashMap()
 ): DebugWritable {
+    val table: Map<TypeName, Type> = mutableTable
+
     val debugKeys: List<String>
         get() {
             val parentKeys = parent?.debugKeys ?: emptyList()
 
-            val (builtIns, users) = table.entrySet().partition {
+            val (builtIns, users) = mutableTable.entrySet().partition {
                 val type = it.value
                 if (type is ClassType) {
                     type.isBuiltIn
@@ -27,11 +29,16 @@ class Namespace(
                 }
             }
 
-            val typeStrs = ArrayList(users.map { it.key.toString() })
+            val typeStrs = ArrayList<String>()
             if (builtIns.size() > 0) {
-                typeStrs.add(0, "BuiltIns(${builtIns.size()})")
+                typeStrs.add("BuiltIns(${builtIns.size()})")
             }
-
+            if (users.size() > 3) {
+                typeStrs.add("...")
+            }
+            typeStrs.addAll(
+                    users.takeLast(3).map { it.key.toString() }
+            )
             val selfKey = key.toString() + typeStrs.joinToString(", ", "{", "}")
 
             val keys = parentKeys + listOf(selfKey)
@@ -39,32 +46,15 @@ class Namespace(
         }
 
     fun resolve(name: TypeName): TupleNamespaceType? {
-        val type = table[name]
+        val type = mutableTable[name]
         if (type != null) {
             return TupleNamespaceType(this, type)
         }
         return parent?.resolve(name)
     }
 
-    fun getEntry(name: TypeName): Type? {
-        return table[name]
-    }
-    fun getEntryNames(): List<TypeName> {
-        return table.keySet().toList()
-    }
-
-    fun addEntry(name: TypeName, type: Type): Either<Exception, Unit> {
-        if (name in table) {
-            return Either.left(Exception(
-                    "namespace entry conflict: name=$name"
-            ))
-        }
-        table[name] = type
-        return Either.right(Unit)
-    }
     fun setEntry(name: TypeName, type: Type) {
-//        println("namespace setEntry: namespace=$this, name=$name, type=${type.javaClass}")
-        table[name] = type
+        mutableTable[name] = type
     }
 
     override fun toString(): String {
@@ -78,8 +68,9 @@ class Namespace(
 
     override fun debugWrite(writer: DebugWriter) {
         writer.indent("Namespace(", ")") {
+            writer.writeLine("keys=$debugKeys")
             writer.indent("table={", "}") {
-                for ((name, type) in table) {
+                for ((name, type) in mutableTable) {
                     writer.writeLine("$name=", false)
                     writer.writeObject(type)
                 }

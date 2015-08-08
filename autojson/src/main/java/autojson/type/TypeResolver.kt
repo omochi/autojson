@@ -31,7 +31,7 @@ class TypeResolver {
             return Either.left(Exception("decode types entry names failed", it))
         }
 
-        for (name in namespace.getEntryNames()) {
+        for (name in ArrayList(namespace.table.keySet())) {
             val decodeRet = getDecodedNamespaceEntry(namespace, name).toRight {
                 return Either.left(Exception("get decoded namespace entry failed: " +
                         "name=$name, namespace=$namespace", it))
@@ -96,7 +96,7 @@ class TypeResolver {
             name: TypeName,
             entry: Type
     ): Either<Exception, Unit> {
-        val oldType = namespace.getEntry(name)
+        val oldType = namespace.table[name]
         when (oldType) {
             null -> {}
             is NodeType -> {}
@@ -133,12 +133,11 @@ class TypeResolver {
                     return Either.left(Exception("decode ref failed: " +
                             "name=${node.name}, $desc", it))
                 }
-                val alias = AliasType(ref)
-                updateNamespaceEntry(namespace, entryName, alias).toRight {
+                updateNamespaceEntry(namespace, entryName, ref).toRight {
                     return Either.left(Exception("update namespace entry failed: " +
                             "namespace=$namespace, name=$entryName, $desc", it))
                 }
-                return Either.right(alias)
+                return Either.right(ref)
             }
             is ClassDefNode -> {
                 val classType = decodeClassDef(
@@ -167,12 +166,12 @@ class TypeResolver {
                 }
                 val type = applied.type
 
-                val alias = AliasType(RefType(applied.namespace, type.name))
-                updateNamespaceEntry(namespace, entryName, alias).toRight {
+                val ref = RefType(applied.namespace, type.name)
+                updateNamespaceEntry(namespace, entryName, ref).toRight {
                     return Either.left(Exception("update namespace entry failed: " +
                             "name=$entryName, $desc", it))
                 }
-                return Either.right(alias)
+                return Either.right(ref)
             }
             else -> {
                 return Either.left(Exception("invalid node type: " +
@@ -364,7 +363,7 @@ class TypeResolver {
                     return Either.left(Exception("get applied class name failed: " +
                             "$desc", it))
                 }
-                val definedApplied = targetNamespace.getEntry(appliedClassName)
+                val definedApplied = targetNamespace.table[appliedClassName]
                 if (definedApplied != null) {
                     if (definedApplied !is ClassType) {
                         throw Exception("defined applied class is not class type: " +
@@ -372,6 +371,8 @@ class TypeResolver {
                     }
                     return Either.right(TupleNamespaceClassType(targetNamespace, definedApplied))
                 }
+
+
 
                 val applied = evalApply(targetClass, params, parentNamespace).toRight {
                     return Either.left(Exception("eval apply failed: " +
@@ -394,50 +395,49 @@ class TypeResolver {
         }
     }
 
-    //  TODO: classHintName: ApplyTargetの匿名定義ができる場合に備えて
     fun decodeApplyTarget(
             classHintName: String,
             node: Node,
             namespace: Namespace
-    ): Either<Exception, TupleNamespaceType> {
-        when (node) {
-            is RefNode -> {
-                val firstDereferRet = getDecodedNamespaceEntry(namespace, node.typeName).toRight {
-                    return Either.left(Exception("get decoded namespace entry failed: " +
-                            "namespace=$namespace, name=${node.typeName}", it))
-                }
-
-                val dereferRet = dereferApplyTarget(
-                        firstDereferRet.type,
-                        firstDereferRet.namespace
-                ).toRight { return Either.left(it) }
-                return Either.right(dereferRet)
-            }
-            else -> {
-                return Either.left(Exception("invalid node type: " +
-                        "namespace=$namespace, node type=${node.javaClass}, node pos=${node.pos}"))
-            }
+    ): Either<Exception, TupleNamespaceClassType> {
+        val desc = "classHintName=$classHintName, " +
+                "node pos=${node.pos}, " +
+                "namespace=$namespace"
+        val decodeRet = decodeTypeNode(node, namespace, classHintName, true).toRight {
+            return Either.left(Exception("decode type node failed: " +
+                    "$desc", it))
         }
+
+        val dereferRet = dereferApplyTarget(decodeRet.type, decodeRet.namespace).toRight {
+            return Either.left(Exception("derefer apply target failed: " +
+                    "target=${decodeRet.type.javaClass}, sourceNamespace=${decodeRet.namespace}, " +
+                    "$desc", it))
+        }
+
+        return Either.right(dereferRet)
     }
 
     fun dereferApplyTarget(
             sourceType: Type,
             sourceNamespace: Namespace
-    ): Either<Exception, TupleNamespaceType> {
+    ): Either<Exception, TupleNamespaceClassType> {
         var currentType = sourceType
         var currentNamespace = sourceNamespace
         loop@ while (true) {
             when (currentType) {
                 is ClassType -> {
-                    break@loop
+                    return Either.right(TupleNamespaceClassType(
+                            currentNamespace,
+                            currentType
+                    ))
                 }
-                is AliasType -> {
-                    val alias = currentType
+                is RefType -> {
+                    val ref = currentType
                     val decodeRet = getDecodedNamespaceEntry(
-                            alias.ref.namespace, alias.ref.name
+                            ref.namespace, ref.name
                     ).toRight {
                         return Either.left(Exception("get decoded namespace entry failed: " +
-                                "namespace=${alias.ref.namespace}, name=${alias.ref.name}"))
+                                "namespace=${ref.namespace}, name=${ref.name}"))
                     }
                     currentType = decodeRet.type
                     currentNamespace = decodeRet.namespace
@@ -450,7 +450,6 @@ class TypeResolver {
                 }
             }
         }
-        return Either.right(TupleNamespaceType(currentNamespace, currentType))
     }
 
     fun decodeApplyParam(
@@ -531,87 +530,87 @@ class TypeResolver {
         }
         desc = "appliedClassName=$appliedClassName, $desc"
 
-        val classNamespace = Namespace(namespace, appliedClassName)
-
-        val appliedFields = LinkedHashMap<String, Type>()
-        for ((fieldName, field) in target.fields) {
-            val appliedField = evalApplyToField(
-                    target,
-                    field,
-                    params,
-                    classNamespace
-            ).toRight {
-                return Either.left(Exception("eval apply to field failed: " +
-                        "fieldName=$fieldName, $desc", it))
-            }
-            appliedFields[fieldName] = appliedField
-        }
-
-        return Either.right(
+        val appliedClass = evalApplySubstToClass(
                 ClassType(
                         appliedClassName,
                         false,
                         emptyMap(),
-                        classNamespace,
-                        appliedFields
-                )
+                        target.namespace,
+                        target.fields
+                ),
+                emptyList()
+        )
+
+        //  型パラの右辺値を変更
+        for ((name, type) in ArrayList(appliedClass.namespace.table.entrySet())) {
+            var replace: Type? = null
+            for (paramEntry in params.entrySet()) {
+                if (name == TypeName(paramEntry.key, false)) {
+                    replace = paramEntry.value
+                    break
+                }
+            }
+            appliedClass.namespace.setEntry(name, replace ?: type)
+        }
+
+        return Either.right(appliedClass)
+    }
+
+    fun evalApplySubstToClass(
+            classType: ClassType,
+            substs: List<ApplySubst>
+    ): ClassType {
+        val newSubsts = ArrayList(substs)
+        val newClassNamespace = Namespace(
+                classType.namespace.parent,
+                classType.name
+        )
+        newSubsts.add(ApplySubst(
+                classType.namespace,
+                newClassNamespace
+        ))
+
+        for ((name, value) in classType.namespace.table.entrySet()) {
+            newClassNamespace.setEntry(name, evalApplySubsts(value, newSubsts))
+        }
+
+        val newClassFields = classType.fields.mapValues {
+            evalApplySubsts(it.value, newSubsts)
+        }
+
+        return ClassType(
+                classType.name,
+                false,
+                classType.params,
+                newClassNamespace,
+                newClassFields
         )
     }
 
-    fun evalApplyToField(
-            targetClass: ClassType,
-            field: Type,
-            params: Map<String, Type>,
-            classNamespace: Namespace
-    ): Either<Exception, Type> {
-        val desc = "field type=${field.javaClass}, params=$params, " +
-                "classNamespace=$classNamespace"
-        when (field) {
+    fun evalApplySubsts(
+            type: Type,
+            substs: List<ApplySubst>
+    ): Type {
+        when (type) {
             is RefType -> {
-                val refField = field
-
-                println("evalApplyToField: " +
-                        "targetClass=${targetClass.name}, " +
-                        "targetClassNamespace=${targetClass.namespace}, " +
-                        "refField=(${refField.namespace}, ${refField.name}), " +
-                        "params=$params")
-
-                if (refField.namespace == targetClass.namespace)  {
-                    if (refField.name.params.size() == 0) {
-                        val replaced = params[refField.name.name]
-                        if (replaced != null) {
-                            println("replaced = ${replaced.toDebugString()}")
-                            return Either.right(replaced)
-                        } else {
-                            println("params is null")
-                        }
+                println("evalApplySubsts/RefType: type=${type.toDebugString()}")
+                for (subst in substs) {
+                    println("subst: ${subst.sourceNamespace}")
+                    if (type.namespace == subst.sourceNamespace) {
+                        println("match: ${subst.destNamespace}")
+                        return RefType(subst.destNamespace, type.name)
                     }
-                } else {
-                    println("namespace not equal")
                 }
+                return type
             }
             is ClassType -> {
-                val applied = evalApply(
-                        field,
-                        params,
-                        classNamespace
-                ).toRight {
-                    return Either.left(Exception(
-                            "eval apply failed: " +
-                                    "field class=${field.name}, $desc", it
-                    ))
-                }
-
-                updateNamespaceEntry(classNamespace, applied.name, applied).toRight {
-                    return Either.left(Exception("update namespace entry failed: " +
-                            "namespace=$classNamespace, name=${applied.name}", it))
-                }
-
-                return Either.right(applied)
+                return evalApplySubstToClass(type, substs)
             }
-            else -> {}
+            is PolyType -> {
+                return type
+            }
+            else -> { throw Exception("invalid type: ${type.javaClass}") }
         }
-        return Either.right(field)
     }
 
 }

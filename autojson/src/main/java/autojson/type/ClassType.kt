@@ -29,7 +29,8 @@ class ClassType(
             }
         }
 
-        w.writeLine("namespace=$namespace")
+        w.writeLine("namespace=", false)
+        w.writeObject(namespace)
 
         if (fields.size() > 0) {
             w.indent("fields={", "}") {
