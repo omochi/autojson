@@ -8,7 +8,7 @@ import autojson.DebugWriter
 
 class RefType (
         val namespace: Namespace,
-        val name: String
+        val name: TypeName
 ): Type() {
     override fun writeDebugBody(w: DebugWriter) {
         w.writeLine("namespace=$namespace")

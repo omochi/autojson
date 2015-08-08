@@ -7,7 +7,7 @@ import autojson.DebugWriter
  */
 
 class ClassType(
-        val name: String,
+        val name: TypeName,
         val params: Map<String, Type>,
         val namespace: Namespace,
         val fields: Map<String, Type>

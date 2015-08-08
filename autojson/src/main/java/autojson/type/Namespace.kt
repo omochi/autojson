@@ -11,16 +11,16 @@ import java.util.*
 
 class Namespace(
         val parent: Namespace?,
-        val key: String,
-        val table: MutableMap<String, Type> = LinkedHashMap()
+        val key: TypeName,
+        private val table: MutableMap<TypeName, Type> = LinkedHashMap()
 ): DebugWritable {
-    val keys: List<String>
+    val keys: List<TypeName>
         get() {
             val parentKeys = parent?.keys ?: emptyList()
             return parentKeys + listOf(key)
         }
 
-    fun resolve(name: String): TupleNamespaceType? {
+    fun resolve(name: TypeName): TupleNamespaceType? {
         val type = table[name]
         if (type != null) {
             return TupleNamespaceType(this, type)
@@ -28,7 +28,14 @@ class Namespace(
         return parent?.resolve(name)
     }
 
-    fun addEntry(name: String, type: Type): Either<Exception, Unit> {
+    fun getEntry(name: TypeName): Type? {
+        return table[name]
+    }
+    fun getEntryNames(): List<TypeName> {
+        return table.keySet().toList()
+    }
+
+    fun addEntry(name: TypeName, type: Type): Either<Exception, Unit> {
         if (name in table) {
             return Either.left(Exception(
                     "namespace entry conflict: name=$name"
@@ -37,7 +44,7 @@ class Namespace(
         table[name] = type
         return Either.right(Unit)
     }
-    fun setEntry(name: String, type: Type) {
+    fun setEntry(name: TypeName, type: Type) {
 //        println("namespace setEntry: namespace=$this, name=$name, type=${type.javaClass}")
         table[name] = type
     }
