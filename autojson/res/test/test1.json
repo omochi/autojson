@@ -1,22 +1,67 @@
 {
 	"types": {
-		"A": {
+		"Hoge": {
 			"type": "Class",
 			"fields": {
-				"intB": {
-					"type": "Apply",
-					"target": "B",
-					"params": {
-						"T": "Int"
-					}
+				"a": "Int",
+				"b": "Long",
+				"innerPiyo": {
+					"type": "Class"
 				}
 			}
 		},
-		"B": {
-			"let": ["T"],
+		"Fuga": {
 			"type": "Class",
+			"let": ["T"],
 			"fields": {
-				"t": "T"
+				"a": "String",
+				"b": "T"
+			}
+		},
+		"HogeAlias": "Hoge",
+		"HogeAliasAlias": "HogeAlias",
+		"FugaAlias": "Fuga",
+		"FugaAliasAlias": "FugaAlias",
+		"BoolFuga": {
+			"type": "Apply",
+			"target": "Fuga",
+			"params": {
+				"T": "Bool"
+			}
+		},
+		"BoolFugaAlias": {
+			"type": "Apply",
+			"target": "FugaAlias",
+			"params": {
+				"T": "Bool"
+			}
+		},
+		"BoolFugaAliasAlias": {
+			"type": "Apply",
+			"target": "FugaAliasAlias",
+			"params": {
+				"T": "Bool"
+			}
+		},
+		"IntFuga": {
+			"type": "Apply",
+			"target": "Fuga",
+			"params": {
+				"T": "Int"
+			}
+		},
+		"IntFugaAlias": {
+			"type": "Apply",
+			"target": "FugaAlias",
+			"params": {
+				"T": "Int"
+			}
+		},
+		"IntFugaAliasAlias": {
+			"type": "Apply",
+			"target": "FugaAliasAlias",
+			"params": {
+				"T": "Int"
 			}
 		}
 	}

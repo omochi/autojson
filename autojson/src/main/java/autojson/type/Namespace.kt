@@ -18,9 +18,24 @@ class Namespace(
         get() {
             val parentKeys = parent?.debugKeys ?: emptyList()
 
-            val selfKey = key.toString() + table.keySet().joinToString(", ", "{", "}")
+            val (builtIns, users) = table.entrySet().partition {
+                val type = it.value
+                if (type is ClassType) {
+                    type.isBuiltIn
+                } else {
+                    false
+                }
+            }
 
-            return parentKeys + listOf(selfKey)
+            val typeStrs = ArrayList(users.map { it.key.toString() })
+            if (builtIns.size() > 0) {
+                typeStrs.add(0, "BuiltIns(${builtIns.size()})")
+            }
+
+            val selfKey = key.toString() + typeStrs.joinToString(", ", "{", "}")
+
+            val keys = parentKeys + listOf(selfKey)
+            return keys
         }
 
     fun resolve(name: TypeName): TupleNamespaceType? {

@@ -8,7 +8,7 @@ import autojson.DebugWriter
 
 class ClassType(
         val name: TypeName,
-        val anonymous: Boolean,
+        val isBuiltIn: Boolean,
         val params: Map<String, Type>,
         val namespace: Namespace,
         val fields: Map<String, Type>
@@ -16,21 +16,27 @@ class ClassType(
     override fun writeDebugBody(w: DebugWriter) {
         w.writeLine("name=$name")
 
-        w.writeLine("anonymous=$anonymous")
+        if (isBuiltIn) {
+            w.writeLine("isBuiltIn=$isBuiltIn")
+        }
 
-        w.indent("params={", "}") {
-            for ((name, param) in params) {
-                w.writeLine("$name=", false)
-                w.writeObject(param)
+        if (params.size() > 0) {
+            w.indent("params={", "}") {
+                for ((name, param) in params) {
+                    w.writeLine("$name=", false)
+                    w.writeObject(param)
+                }
             }
         }
 
         w.writeLine("namespace=$namespace")
 
-        w.indent("fields={", "}") {
-            for ((name, field) in fields) {
-                w.writeLine("$name=", false)
-                w.writeObject(field)
+        if (fields.size() > 0) {
+            w.indent("fields={", "}") {
+                for ((name, field) in fields) {
+                    w.writeLine("$name=", false)
+                    w.writeObject(field)
+                }
             }
         }
     }

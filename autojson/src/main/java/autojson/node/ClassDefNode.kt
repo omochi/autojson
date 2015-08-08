@@ -42,8 +42,7 @@ class ClassDefNode (
                     ))
                 }
                 name to type
-            }?.toMap() ?:
-                    return Either.left(Exception("fields is null, pos=$pos"))
+            }?.toMap() ?: emptyMap()
 
             return Either.right(ClassDefNode(let, name, fields, pos))
         }

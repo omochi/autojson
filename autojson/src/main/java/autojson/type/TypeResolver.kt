@@ -19,12 +19,13 @@ class TypeResolver {
     fun decodeFile(
             file: SourceFileNode
     ): Either<Exception, Namespace> {
-        val namespace = Namespace(null, TypeName("root"))
+        val namespace = Namespace(null, TypeName("root", false))
 
-        val intName = TypeName("Int")
-        updateNamespaceEntry(namespace, intName, ClassType(
-                intName, false, emptyMap(), Namespace(namespace, intName), emptyMap()
-        ))
+        for (name in listOf("Null", "Bool", "Int", "Long", "Float", "Double", "String")) {
+            addBuiltInScalarType(namespace, name).toRight {
+                return Either.left(it)
+            }
+        }
 
         decodeTypesEntryNames(file.types, namespace).toRight {
             return Either.left(Exception("decode types entry names failed", it))
@@ -40,13 +41,24 @@ class TypeResolver {
         return Either.right(namespace)
     }
 
+    fun addBuiltInScalarType(namespace: Namespace, name: String): Either<Exception, Unit> {
+        val typeName = TypeName(name, false)
+        updateNamespaceEntry(namespace, typeName, ClassType(
+                typeName, true, emptyMap(), Namespace(namespace, typeName), emptyMap()
+        )).toRight {
+            return Either.left(Exception("add built in scalar type failed: " +
+                    "namespace=$namespace, name=$name", it))
+        }
+        return Either.right(Unit)
+    }
+
     fun decodeTypesEntryNames(
             types: Map<String, Node>,
             destNamespace: Namespace
     ): Either<Exception, Unit> {
         for ((name, typeNode) in types) {
             val type = NodeType(typeNode)
-            val typeName = TypeName(name)
+            val typeName = TypeName(name, false)
             updateNamespaceEntry(destNamespace, typeName, type).toRight {
                 return Either.left(Exception("update namespace entry failed: " +
                         "namespace=$destNamespace, name=$typeName", it))
@@ -117,7 +129,7 @@ class TypeResolver {
                 "node pos=${node.pos}"
         when (node) {
             is RefNode -> {
-                val ref = decodeRef(namespace, TypeName(node.name)).toRight {
+                val ref = decodeRef(namespace, node.typeName).toRight {
                     return Either.left(Exception("decode ref failed: " +
                             "name=${node.name}, $desc", it))
                 }
@@ -130,7 +142,7 @@ class TypeResolver {
             }
             is ClassDefNode -> {
                 val classType = decodeClassDef(
-                        entryName,
+                        entryName.name,
                         false,
                         node,
                         namespace
@@ -146,7 +158,7 @@ class TypeResolver {
             }
             is ApplyNode -> {
                 val applied = decodeApply(
-                        entryName,
+                        entryName.name,
                         node,
                         namespace
                 ).toRight {
@@ -154,20 +166,13 @@ class TypeResolver {
                             "$desc", it))
                 }
                 val type = applied.type
-                if (type.anonymous) {
-                    updateNamespaceEntry(namespace, entryName, type).toRight {
-                        return Either.left(Exception("update namespace entry failed: " +
-                                "entryName=$entryName, $desc", it))
-                    }
-                    return Either.right(type)
-                } else {
-                    val alias = AliasType(RefType(applied.namespace, type.name))
-                    updateNamespaceEntry(namespace, entryName, alias).toRight {
-                        return Either.left(Exception("update namespace entry failed: " +
-                                "name=$entryName, $desc", it))
-                    }
-                    return Either.right(alias)
+
+                val alias = AliasType(RefType(applied.namespace, type.name))
+                updateNamespaceEntry(namespace, entryName, alias).toRight {
+                    return Either.left(Exception("update namespace entry failed: " +
+                            "name=$entryName, $desc", it))
                 }
+                return Either.right(alias)
             }
             else -> {
                 return Either.left(Exception("invalid node type: " +
@@ -187,12 +192,12 @@ class TypeResolver {
     }
 
     fun decodeClassDef (
-            hintName: TypeName,
+            hintName: String,
             anonymous: Boolean,
             classDefNode: ClassDefNode,
             parentNamespace: Namespace
     ): Either<Exception, ClassType> {
-        val className = classDefNode.name?.let { TypeName(it) } ?: hintName
+        val className = TypeName(classDefNode.name ?: hintName, anonymous)
 
         val desc = "className=$className, " +
                 "anonymous=$anonymous, " +
@@ -206,7 +211,7 @@ class TypeResolver {
             val paramType = PolyType()
             params[name] = paramType
 
-            updateNamespaceEntry(classNamespace, TypeName(name), paramType).toRight {
+            updateNamespaceEntry(classNamespace, TypeName(name, false), paramType).toRight {
                 return Either.left(Exception(
                         "update namespace entry failed: " +
                                 "classNamespace=$classNamespace, " +
@@ -232,30 +237,30 @@ class TypeResolver {
 
         val classType = ClassType(
                 className,
-                anonymous,
+                false,
                 params,
                 classNamespace,
                 fields
         )
-        if (!anonymous) {
-            updateNamespaceEntry(parentNamespace, className, classType).toRight {
-                return Either.left(Exception("update namespace entry failed: " +
-                        "namespace=$parentNamespace, name=$className, $desc", it))
-            }
+
+        updateNamespaceEntry(parentNamespace, className, classType).toRight {
+            return Either.left(Exception("update namespace entry failed: " +
+                    "namespace=$parentNamespace, name=$className, $desc", it))
         }
+
         return Either.right(classType)
     }
 
     fun decodeTypeNode(
             node: Node,
             namespace: Namespace,
-            classHintName: TypeName,
+            classHintName: String,
             anonymous: Boolean
     ): Either<Exception, TupleNamespaceType> {
         val desc="node pos=${node.pos}, namespace=$namespace, classHintName=$classHintName"
         when (node) {
             is RefNode -> {
-                val ref = decodeRef(namespace, TypeName(node.name)).toRight {
+                val ref = decodeRef(namespace, node.typeName).toRight {
                     return Either.left(Exception("decode ref failed: " +
                             "name=${node.name}, $desc", it))
                 }
@@ -298,10 +303,14 @@ class TypeResolver {
             fieldNode: Node,
             classNamespace: Namespace
     ): Either<Exception, Type> {
-        val hintName = TypeName(getClassNameFromFieldName(fieldName)!!)
+        val hintName = getClassNameFromFieldName(fieldName)!!
 
-        val decoded = decodeTypeNode(fieldNode, classNamespace,
-                hintName, true).toRight {
+        val decoded = decodeTypeNode(
+                fieldNode,
+                classNamespace,
+                hintName,
+                true
+        ).toRight {
             return Either.left(Exception("decode type node failed: " +
                     "fieldName=$fieldName, " +
                     "fieldNode pos=${fieldNode.pos}, " +
@@ -311,7 +320,7 @@ class TypeResolver {
     }
 
     private fun decodeApply(
-            classHintName: TypeName,
+            classHintName: String,
             applyNode: ApplyNode,
             parentNamespace: Namespace
     ): Either<Exception, TupleNamespaceClassType> {
@@ -351,19 +360,17 @@ class TypeResolver {
                         "params=$params, " +
                         "$desc"
 
-                if (!targetClass.anonymous) {
-                    val appliedClassName = getAppliedClassName(targetClass, params).toRight {
-                        return Either.left(Exception("get applied class name failed: " +
-                                "$desc", it))
+                val appliedClassName = getAppliedClassName(targetClass, params).toRight {
+                    return Either.left(Exception("get applied class name failed: " +
+                            "$desc", it))
+                }
+                val definedApplied = targetNamespace.getEntry(appliedClassName)
+                if (definedApplied != null) {
+                    if (definedApplied !is ClassType) {
+                        throw Exception("defined applied class is not class type: " +
+                                "${definedApplied.javaClass}, $desc")
                     }
-                    val definedApplied = targetNamespace.getEntry(appliedClassName)
-                    if (definedApplied != null) {
-                        if (definedApplied !is ClassType) {
-                            throw Exception("defined applied class is not class type: " +
-                                    "${definedApplied.javaClass}, $desc")
-                        }
-                        return Either.right(TupleNamespaceClassType(targetNamespace, definedApplied))
-                    }
+                    return Either.right(TupleNamespaceClassType(targetNamespace, definedApplied))
                 }
 
                 val applied = evalApply(targetClass, params, parentNamespace).toRight {
@@ -372,12 +379,10 @@ class TypeResolver {
                             "params=${params}, $desc", it))
                 }
 
-                if (!applied.anonymous) {
-                    updateNamespaceEntry(targetNamespace, applied.name, applied).toRight {
-                        return Either.left(Exception("update namespace entry failed: " +
-                                "namespace=$targetNamespace, " +
-                                "name=${applied.name}, $desc", it))
-                    }
+                updateNamespaceEntry(targetNamespace, applied.name, applied).toRight {
+                    return Either.left(Exception("update namespace entry failed: " +
+                            "namespace=$targetNamespace, " +
+                            "name=${applied.name}, $desc", it))
                 }
 
                 return Either.right(TupleNamespaceClassType(targetNamespace, applied))
@@ -391,16 +396,15 @@ class TypeResolver {
 
     //  TODO: classHintName: ApplyTargetの匿名定義ができる場合に備えて
     fun decodeApplyTarget(
-            classHintName: TypeName,
+            classHintName: String,
             node: Node,
             namespace: Namespace
     ): Either<Exception, TupleNamespaceType> {
         when (node) {
             is RefNode -> {
-                val firstRefName = TypeName(node.name)
-                val firstDereferRet = getDecodedNamespaceEntry(namespace, firstRefName).toRight {
+                val firstDereferRet = getDecodedNamespaceEntry(namespace, node.typeName).toRight {
                     return Either.left(Exception("get decoded namespace entry failed: " +
-                            "namespace=$namespace, name=$firstRefName", it))
+                            "namespace=$namespace, name=${node.typeName}", it))
                 }
 
                 val dereferRet = dereferApplyTarget(
@@ -450,12 +454,12 @@ class TypeResolver {
     }
 
     fun decodeApplyParam(
-            targetName: TypeName,
+            targetName: String,
             paramName: String,
             paramNode: Node,
             namespace: Namespace
     ): Either<Exception, Type> {
-        val hintName = TypeName(targetName.name + getClassNameFromFieldName(paramName)!!)
+        val hintName = targetName + getClassNameFromFieldName(paramName)!!
 
         val decoded = decodeTypeNode(
                 paramNode,
@@ -502,7 +506,7 @@ class TypeResolver {
             paramTypeNames[paramName] = paramTypeName
         }
 
-        return Either.right(TypeName(target.name.name, paramTypeNames))
+        return Either.right(TypeName(target.name.name, target.name.anonymous, paramTypeNames))
     }
 
     fun evalApply(
@@ -546,7 +550,7 @@ class TypeResolver {
         return Either.right(
                 ClassType(
                         appliedClassName,
-                        target.anonymous,
+                        false,
                         emptyMap(),
                         classNamespace,
                         appliedFields
