@@ -132,10 +132,10 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="TypeResolver.kt" pinned="false" current-in-tab="true">
+      <file leaf-file-name="TypeResolver.kt" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/autojson/type/TypeResolver.kt">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="13.362761">
+            <state vertical-scroll-proportion="0.0">
               <caret line="555" column="41" selection-start-line="555" selection-start-column="41" selection-end-line="555" selection-end-column="41" />
               <folding>
                 <element signature="e#23#219#0" expanded="true" />
@@ -164,16 +164,6 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="RefNode.kt" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/java/autojson/node/RefNode.kt">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="11" column="0" selection-start-line="11" selection-start-column="0" selection-end-line="11" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="DebugWriter.kt" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/autojson/DebugWriter.kt">
           <provider selected="true" editor-type-id="text-editor">
@@ -194,10 +184,10 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="ClassType.kt" pinned="false" current-in-tab="false">
+      <file leaf-file-name="ClassType.kt" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/autojson/type/ClassType.kt">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
+            <state vertical-scroll-proportion="0.7704655">
               <caret line="32" column="20" selection-start-line="32" selection-start-column="20" selection-end-line="32" selection-end-column="20" />
               <folding />
             </state>
@@ -1158,14 +1148,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/autojson/type/ClassType.kt">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="32" column="20" selection-start-line="32" selection-start-column="20" selection-end-line="32" selection-end-column="20" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/autojson/DebugWriter.kt">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -1184,11 +1166,19 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/autojson/type/TypeResolver.kt">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="13.362761">
+        <state vertical-scroll-proportion="0.0">
           <caret line="555" column="41" selection-start-line="555" selection-start-column="41" selection-end-line="555" selection-end-column="41" />
           <folding>
             <element signature="e#23#219#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/autojson/type/ClassType.kt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.7704655">
+          <caret line="32" column="20" selection-start-line="32" selection-start-column="20" selection-end-line="32" selection-end-column="20" />
+          <folding />
         </state>
       </provider>
     </entry>
