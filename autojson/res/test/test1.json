@@ -1,12 +1,42 @@
 {
 	"types": {
+		"Box": {
+			"type": "Class",
+			"let": ["T"],
+			"fields": {
+				"value": "T"
+			}
+		},
+		"UBox": {
+			"type": "Class",
+			"let": ["U"],
+			"fields": {
+				"value": "U"
+			}
+		},
 		"Hoge": {
 			"type": "Class",
 			"fields": {
 				"a": "Int",
 				"b": "Long",
 				"innerPiyo": {
-					"type": "Class"
+					"type": "Class",
+					"fields": {
+						"c": "Int",
+						"innerKero": {
+							"type": "Class",
+							"fields": {
+								"d": "Float"
+							}
+						}
+					}
+				},
+				"intBox": {
+					"type": "Apply",
+					"target": "Box",
+					"params": {
+						"T": "Int"
+					}
 				}
 			}
 		},
@@ -15,7 +45,70 @@
 			"let": ["T"],
 			"fields": {
 				"a": "String",
-				"b": "T"
+				"b": "T",
+				"innerNyaa": {
+					"type": "Class",
+					"fields": {
+						"c": "Int",
+						"d": "T",
+						"innerKero": {
+							"type": "Class",
+							"fields": {
+								"d": "Float"
+							}
+						}
+					}
+				},
+				"intBox": {
+					"type": "Apply",
+					"target": "Box",
+					"params": {
+						"T": "Double"
+					}
+				},
+				"anonyBox1": {
+					"type": "Apply",
+					"target": "Box",
+					"params": {
+						"T": {
+							"type": "Class",
+							"fields": {
+								"name": "String"
+							}
+						}
+					}
+				},
+				"anonyBox2": {
+					"type": "Apply",
+					"target": "UBox",
+					"params": {
+						"U": {
+							"type": "Class",
+							"fields": {
+								"name": "T"
+							}
+						}
+					}
+				},
+				"instantContainer": {
+					"type": "Apply",
+					"target": {
+						"type": "Class",
+						"let": ["E"],
+						"fields": {
+							"element": "E",
+							"tee": "T"
+						}
+					},
+					"params": {
+						"E": {
+							"type": "Class",
+							"fields": {
+								"aaa": "Int"
+							}
+						}
+					}
+				}
 			}
 		},
 		"HogeAlias": "Hoge",

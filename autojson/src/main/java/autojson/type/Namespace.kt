@@ -16,6 +16,16 @@ class Namespace(
 ): DebugWritable {
     val table: Map<TypeName, Type> = mutableTable
 
+    val level: Int
+        get() {
+            val p = parent
+            if (p != null) {
+                return p.level + 1
+            } else {
+                return 0
+            }
+        }
+
     val debugKeys: List<String>
         get() {
             val parentKeys = parent?.debugKeys ?: emptyList()
@@ -59,16 +69,21 @@ class Namespace(
 
     override fun toString(): String {
         val parts = mapOf<String, String>(
+                "level" to level.toString(),
                 "keys" to debugKeys.toString()
         )
-        return "Namespace(" +
+        return "Namespace@${System.identityHashCode(this)}(" +
                 parts.map { "${it.key}=${it.value}" }.joinToString(", ") +
                 ")"
     }
 
     override fun debugWrite(writer: DebugWriter) {
-        writer.indent("Namespace(", ")") {
-            writer.writeLine("keys=$debugKeys")
+        writer.indent("Namespace@${System.identityHashCode(this)}(", ")") {
+            writer.indent("keys=[", "]") {
+                for ((index, key) in debugKeys.withIndex()) {
+                    writer.writeLine("[$index]=$key")
+                }
+            }
             writer.indent("table={", "}") {
                 for ((name, type) in mutableTable) {
                     writer.writeLine("$name=", false)

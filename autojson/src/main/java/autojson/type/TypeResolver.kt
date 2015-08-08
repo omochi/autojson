@@ -149,9 +149,11 @@ class TypeResolver {
                     return Either.left(Exception("decode class def failed: " +
                             "$desc", it))
                 }
-                if (entryName != classType.name) {
-                    return Either.left(Exception("decoded class name is conflicted: " +
-                            "decoded=${classType.name}, $desc"))
+                if (classType is ClassType) {
+                    if (entryName != classType.name) {
+                        return Either.left(Exception("decoded class name is conflicted: " +
+                                "decoded=${classType.name}, $desc"))
+                    }
                 }
                 return Either.right(classType)
             }
@@ -276,6 +278,7 @@ class TypeResolver {
                     return Either.left(Exception("decode class def failed: " +
                             "$desc", it))
                 }
+
                 return Either.right(TupleNamespaceType(
                         namespace, classType
                 ))
@@ -315,6 +318,15 @@ class TypeResolver {
                     "fieldNode pos=${fieldNode.pos}, " +
                     "classNamespace=$classNamespace", it))
         }
+
+        val decodedType = decoded.type
+        if (decodedType is ClassType) {
+            return Either.right(RefType(
+                    decoded.namespace,
+                    decodedType.name
+            ))
+        }
+
         return Either.right(decoded.type)
     }
 
@@ -372,9 +384,7 @@ class TypeResolver {
                     return Either.right(TupleNamespaceClassType(targetNamespace, definedApplied))
                 }
 
-
-
-                val applied = evalApply(targetClass, params, parentNamespace).toRight {
+                val applied = evalApply(targetClass, params).toRight {
                     return Either.left(Exception("eval apply failed: " +
                             "target=${targetClass.name}, " +
                             "params=${params}, $desc", it))
@@ -403,7 +413,12 @@ class TypeResolver {
         val desc = "classHintName=$classHintName, " +
                 "node pos=${node.pos}, " +
                 "namespace=$namespace"
-        val decodeRet = decodeTypeNode(node, namespace, classHintName, true).toRight {
+        val decodeRet = decodeTypeNode(
+                node,
+                namespace,
+                classHintName,
+                true
+        ).toRight {
             return Either.left(Exception("decode type node failed: " +
                     "$desc", it))
         }
@@ -472,6 +487,15 @@ class TypeResolver {
                     "paramNode pos=${paramNode.pos}, " +
                     "namespace=$namespace", it))
         }
+
+        val decodedType = decoded.type
+        if (decodedType is ClassType) {
+            return Either.right(RefType(
+                    decoded.namespace,
+                    decodedType.name
+            ))
+        }
+
         return Either.right(decoded.type)
     }
 
@@ -510,12 +534,10 @@ class TypeResolver {
 
     fun evalApply(
             target: ClassType,
-            params: Map<String, Type>,
-            namespace: Namespace
+            params: Map<String, Type>
     ): Either<Exception, ClassType> {
         var desc="target name=${target.name}, " +
-                "params=$params, " +
-                "namespace=$namespace"
+                "params=$params"
 
         for (targetParam in target.params.keySet()) {
             if (targetParam !in params.keySet()) {
@@ -524,13 +546,23 @@ class TypeResolver {
                         "target param=$targetParam, $desc"))
             }
         }
+        val targetParentNamespace = target.namespace.parent!!
 
         val appliedClassName = getAppliedClassName(target, params).toRight {
             return Either.left(Exception("get applied class name failed: $desc", it))
         }
         desc = "appliedClassName=$appliedClassName, $desc"
 
+        val substs = ArrayList<NamespaceEntrySubst>()
+        substs.add(NamespaceEntrySubst(
+                targetParentNamespace,
+                target.name,
+                targetParentNamespace,
+                appliedClassName
+        ))
+
         val appliedClass = evalApplySubstToClass(
+                targetParentNamespace,
                 ClassType(
                         appliedClassName,
                         false,
@@ -538,7 +570,7 @@ class TypeResolver {
                         target.namespace,
                         target.fields
                 ),
-                emptyList()
+                substs
         )
 
         //  型パラの右辺値を変更
@@ -557,29 +589,56 @@ class TypeResolver {
     }
 
     fun evalApplySubstToClass(
+            parentNamespace: Namespace,
             classType: ClassType,
-            substs: List<ApplySubst>
+            substs: List<NamespaceEntrySubst>
     ): ClassType {
-        val newSubsts = ArrayList(substs)
-        val newClassNamespace = Namespace(
-                classType.namespace.parent,
-                classType.name
+        val newClassNameTuple = evalApplyTypeName(
+                parentNamespace,
+                classType.name,
+                substs
         )
-        newSubsts.add(ApplySubst(
-                classType.namespace,
-                newClassNamespace
-        ))
+//        if (newClassNameTuple.namespace != parentNamespace) {
+//            throw Exception("invalid argument")
+//        }
+
+        val newClassName = newClassNameTuple.name
+
+        val newClassNamespace = Namespace(
+                parentNamespace,
+                newClassName
+        )
+
+        val newSubsts = ArrayList(substs)
 
         for ((name, value) in classType.namespace.table.entrySet()) {
-            newClassNamespace.setEntry(name, evalApplySubsts(value, newSubsts))
+            val newName = TypeName(name.name, name.anonymous, name.params)
+
+            newSubsts.add(NamespaceEntrySubst(
+                    classType.namespace,
+                    name,
+                    newClassNamespace,
+                    newName
+            ))
+        }
+
+        for ((name, value) in classType.namespace.table.entrySet()) {
+            val appliedValue = evalApplySubsts(classType.namespace, value, newSubsts)
+            val appliedName =
+                    if (appliedValue is ClassType) {
+                        appliedValue.name
+                    } else {
+                        name
+                    }
+            newClassNamespace.setEntry(appliedName, appliedValue)
         }
 
         val newClassFields = classType.fields.mapValues {
-            evalApplySubsts(it.value, newSubsts)
+            evalApplySubsts(classType.namespace, it.value, newSubsts)
         }
 
         return ClassType(
-                classType.name,
+                newClassName,
                 false,
                 classType.params,
                 newClassNamespace,
@@ -588,29 +647,44 @@ class TypeResolver {
     }
 
     fun evalApplySubsts(
+            parentNamespace: Namespace,
             type: Type,
-            substs: List<ApplySubst>
+            substs: List<NamespaceEntrySubst>
     ): Type {
         when (type) {
             is RefType -> {
-                println("evalApplySubsts/RefType: type=${type.toDebugString()}")
-                for (subst in substs) {
-                    println("subst: ${subst.sourceNamespace}")
-                    if (type.namespace == subst.sourceNamespace) {
-                        println("match: ${subst.destNamespace}")
-                        return RefType(subst.destNamespace, type.name)
-                    }
-                }
-                return type
+                val newRef = evalApplyTypeName(type.namespace, type.name, substs)
+                return RefType(newRef.namespace, newRef.name)
             }
             is ClassType -> {
-                return evalApplySubstToClass(type, substs)
+                return evalApplySubstToClass(parentNamespace, type, substs)
             }
             is PolyType -> {
                 return type
             }
             else -> { throw Exception("invalid type: ${type.javaClass}") }
         }
+    }
+
+    fun evalApplyTypeName(
+            namespace: Namespace,
+            name: TypeName,
+            substs: List<NamespaceEntrySubst>
+    ): TupleNamespaceTypeName {
+        println("evalApplyTypeName: $namespace, $name")
+        for (subst in substs) {
+            println("  test: ${subst.sourceNamespace}, ${subst.sourceName}")
+            if (namespace == subst.sourceNamespace &&
+                    name == subst.sourceName) {
+                println("  match: ${subst.destNamespace}, ${subst.destName}")
+                return TupleNamespaceTypeName(
+                        subst.destNamespace,
+                        subst.destName
+                )
+            }
+        }
+        println("  not match")
+        return TupleNamespaceTypeName(namespace, name)
     }
 
 }
