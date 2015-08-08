@@ -8,3 +8,8 @@ data class TupleNamespaceType(
         val namespace: Namespace,
         val type: Type
 )
+
+data class TupleNamespaceClassType(
+        val namespace: Namespace,
+        val type: ClassType
+)

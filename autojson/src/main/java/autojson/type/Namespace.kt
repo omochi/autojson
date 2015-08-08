@@ -14,10 +14,13 @@ class Namespace(
         val key: TypeName,
         private val table: MutableMap<TypeName, Type> = LinkedHashMap()
 ): DebugWritable {
-    val keys: List<TypeName>
+    val debugKeys: List<String>
         get() {
-            val parentKeys = parent?.keys ?: emptyList()
-            return parentKeys + listOf(key)
+            val parentKeys = parent?.debugKeys ?: emptyList()
+
+            val selfKey = key.toString() + table.keySet().joinToString(", ", "{", "}")
+
+            return parentKeys + listOf(selfKey)
         }
 
     fun resolve(name: TypeName): TupleNamespaceType? {
@@ -51,8 +54,7 @@ class Namespace(
 
     override fun toString(): String {
         val parts = mapOf<String, String>(
-                "keys" to keys.toString(),
-                "entry num" to table.size().toString()
+                "keys" to debugKeys.toString()
         )
         return "Namespace(" +
                 parts.map { "${it.key}=${it.value}" }.joinToString(", ") +

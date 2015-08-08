@@ -8,6 +8,7 @@ import autojson.DebugWriter
 
 class ClassType(
         val name: TypeName,
+        val anonymous: Boolean,
         val params: Map<String, Type>,
         val namespace: Namespace,
         val fields: Map<String, Type>
@@ -15,15 +16,14 @@ class ClassType(
     override fun writeDebugBody(w: DebugWriter) {
         w.writeLine("name=$name")
 
+        w.writeLine("anonymous=$anonymous")
+
         w.indent("params={", "}") {
             for ((name, param) in params) {
                 w.writeLine("$name=", false)
                 w.writeObject(param)
             }
         }
-
-//        w.writeLine("namespace=", false)
-//        w.writeObject(namespace)
 
         w.writeLine("namespace=$namespace")
 
