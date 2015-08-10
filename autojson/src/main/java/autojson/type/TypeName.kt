@@ -11,11 +11,16 @@ class TypeName (
         val anonymous: Boolean,
         val params: Map<String, TypeName> = emptyMap()
 ) {
+    constructor(other: TypeName):
+        this(other.name, other.anonymous, other.params)
+    {
+    }
+
     override fun hashCode(): Int {
         var hash = 1
         if (anonymous) {
             hash = (37 * hash) + 1
-            hash = System.identityHashCode(this)
+            hash = (37 * hash) + System.identityHashCode(this)
             return hash
         } else {
             hash = (37 * hash) + 0
@@ -47,4 +52,5 @@ class TypeName (
             return baseStr
         }
     }
+
 }

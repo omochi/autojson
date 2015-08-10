@@ -20,4 +20,8 @@ class NodeType (
         w.writeLine("node=${node.javaClass.getSimpleName()}")
         w.writeLine("pos=${node.pos}")
     }
+
+    override fun applySubsts(substs: List<NamespaceEntrySubst>): NodeType {
+        return this
+    }
 }

@@ -12,4 +12,8 @@ class PolyType (
     override fun writeDebugBody(w: DebugWriter) {
         w.writeLine("id=${System.identityHashCode(this)}")
     }
+
+    override fun applySubsts(substs: List<NamespaceEntrySubst>): PolyType {
+        return this
+    }
 }

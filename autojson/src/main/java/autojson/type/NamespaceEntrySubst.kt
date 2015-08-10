@@ -5,8 +5,6 @@ package autojson.type
  */
 
 class NamespaceEntrySubst(
-        val sourceNamespace: Namespace,
-        val sourceName: TypeName,
-        val destNamespace: Namespace,
-        val destName: TypeName
+        val source: TupleNamespaceTypeName,
+        val dest: TupleNamespaceTypeName
 )

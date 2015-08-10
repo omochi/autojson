@@ -44,7 +44,7 @@ class TypeResolver {
     fun addBuiltInScalarType(namespace: Namespace, name: String): Either<Exception, Unit> {
         val typeName = TypeName(name, false)
         updateNamespaceEntry(namespace, typeName, ClassType(
-                typeName, true, emptyMap(), Namespace(namespace, typeName), emptyMap()
+                typeName, true, LinkedHashMap(), Namespace(namespace, typeName), emptyMap()
         )).toRight {
             return Either.left(Exception("add built in scalar type failed: " +
                     "namespace=$namespace, name=$name", it))
@@ -367,7 +367,7 @@ class TypeResolver {
             is ClassType -> {
                 val targetClass = targetType
 
-                desc = "targetClass=${targetClass.name}," +
+                desc = "targetClass=${targetClass.name}, " +
                         "params=$params, " +
                         "$desc"
 
@@ -555,24 +555,13 @@ class TypeResolver {
 
         val substs = ArrayList<NamespaceEntrySubst>()
         substs.add(NamespaceEntrySubst(
-                targetParentNamespace,
-                target.name,
-                targetParentNamespace,
-                appliedClassName
+                TupleNamespaceTypeName(targetParentNamespace, target.name),
+                TupleNamespaceTypeName(targetParentNamespace, appliedClassName)
         ))
 
-        val appliedClass = evalApplySubstToClass(
-                targetParentNamespace,
-                ClassType(
-                        appliedClassName,
-                        false,
-                        emptyMap(),
-                        target.namespace,
-                        target.fields
-                ),
-                substs
-        )
-
+        val appliedClass = target.applySubsts(substs)
+        //  型パラを閉じる
+        appliedClass.params.clear()
         //  型パラの右辺値を変更
         for ((name, type) in ArrayList(appliedClass.namespace.table.entrySet())) {
             var replace: Type? = null
@@ -584,107 +573,8 @@ class TypeResolver {
             }
             appliedClass.namespace.setEntry(name, replace ?: type)
         }
-
         return Either.right(appliedClass)
     }
 
-    fun evalApplySubstToClass(
-            parentNamespace: Namespace,
-            classType: ClassType,
-            substs: List<NamespaceEntrySubst>
-    ): ClassType {
-        val newClassNameTuple = evalApplyTypeName(
-                parentNamespace,
-                classType.name,
-                substs
-        )
-//        if (newClassNameTuple.namespace != parentNamespace) {
-//            throw Exception("invalid argument")
-//        }
-
-        val newClassName = newClassNameTuple.name
-
-        val newClassNamespace = Namespace(
-                parentNamespace,
-                newClassName
-        )
-
-        val newSubsts = ArrayList(substs)
-
-        for ((name, value) in classType.namespace.table.entrySet()) {
-            val newName = TypeName(name.name, name.anonymous, name.params)
-
-            newSubsts.add(NamespaceEntrySubst(
-                    classType.namespace,
-                    name,
-                    newClassNamespace,
-                    newName
-            ))
-        }
-
-        for ((name, value) in classType.namespace.table.entrySet()) {
-            val appliedValue = evalApplySubsts(classType.namespace, value, newSubsts)
-            val appliedName =
-                    if (appliedValue is ClassType) {
-                        appliedValue.name
-                    } else {
-                        name
-                    }
-            newClassNamespace.setEntry(appliedName, appliedValue)
-        }
-
-        val newClassFields = classType.fields.mapValues {
-            evalApplySubsts(classType.namespace, it.value, newSubsts)
-        }
-
-        return ClassType(
-                newClassName,
-                false,
-                classType.params,
-                newClassNamespace,
-                newClassFields
-        )
-    }
-
-    fun evalApplySubsts(
-            parentNamespace: Namespace,
-            type: Type,
-            substs: List<NamespaceEntrySubst>
-    ): Type {
-        when (type) {
-            is RefType -> {
-                val newRef = evalApplyTypeName(type.namespace, type.name, substs)
-                return RefType(newRef.namespace, newRef.name)
-            }
-            is ClassType -> {
-                return evalApplySubstToClass(parentNamespace, type, substs)
-            }
-            is PolyType -> {
-                return type
-            }
-            else -> { throw Exception("invalid type: ${type.javaClass}") }
-        }
-    }
-
-    fun evalApplyTypeName(
-            namespace: Namespace,
-            name: TypeName,
-            substs: List<NamespaceEntrySubst>
-    ): TupleNamespaceTypeName {
-        println("evalApplyTypeName: $namespace, $name")
-        for (subst in substs) {
-            println("  test: ${subst.sourceNamespace}, ${subst.sourceName}")
-            if (namespace == subst.sourceNamespace &&
-                    name == subst.sourceName) {
-                println("  match: ${subst.destNamespace}, ${subst.destName}")
-                return TupleNamespaceTypeName(
-                        subst.destNamespace,
-                        subst.destName
-                )
-            }
-        }
-        println("  not match")
-        return TupleNamespaceTypeName(namespace, name)
-    }
 
 }
