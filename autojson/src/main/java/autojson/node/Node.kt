@@ -78,9 +78,7 @@ abstract class Node: DebugWritable {
                 json: Json,
                 pos: NodePos
         ): Either<Exception, Map<String, Node>> {
-            val typesJsonMap = json.asMap ?:
-                    return Either.left(Exception(
-                            "types json is ${json.valueType}: pos=$pos"))
+            val typesJsonMap = json.asMap ?: emptyMap()
 
             var table = LinkedHashMap<String, Node>()
 

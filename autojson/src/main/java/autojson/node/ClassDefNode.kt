@@ -33,16 +33,22 @@ class ClassDefNode (
             if (body.valueType != Json.ValueType.Map) {
                 return Either.left(Exception("class def body is not map: type=${body.valueType}"))
             }
+            return fromBodyJson(body, pos)
+        }
 
-            val let = letFromJson(body["let"], pos + "let").toRight { emptyList() }
+        fun fromBodyJson(
+                json: Json,
+                pos: NodePos
+        ): Either<Exception, ClassDefNode> {
+            val let = letFromJson(json["let"], pos + "let").toRight { emptyList() }
 
-            val name = body["name"].asString
+            val name = json["name"].asString
 
             val types = Node.typesFromJson(json["types"], pos + "types").toRight {
                 return Either.left(it)
             }
 
-            val fields = body["fields"].asMap?.map {
+            val fields = json["fields"].asMap?.map {
                 val fieldName = it.key
                 val type = Node.typeFromJson(it.value, pos + "fields" + fieldName).toRight {
                     return Either.left(Exception(

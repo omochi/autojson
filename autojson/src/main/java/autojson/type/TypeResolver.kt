@@ -27,15 +27,9 @@ class TypeResolver {
             }
         }
 
-        decodeTypesEntryNames(file.types, namespace).toRight {
-            return Either.left(Exception("decode types entry names failed", it))
-        }
-
-        for (name in ArrayList(namespace.table.keySet())) {
-            getDecodedNamespaceEntry(namespace, name).toRight {
-                return Either.left(Exception("get decoded namespace entry failed: " +
-                        "name=$name, namespace=$namespace", it))
-            }
+        decodeTypes(file.types, namespace).toRight {
+            return Either.left(Exception("decode types failed: " +
+                    "namespace=$namespace"))
         }
 
         return Either.right(namespace)
@@ -52,18 +46,25 @@ class TypeResolver {
         return Either.right(Unit)
     }
 
-    fun decodeTypesEntryNames(
+    fun decodeTypes(
             types: Map<String, Node>,
             destNamespace: Namespace
     ): Either<Exception, Unit> {
         for ((name, typeNode) in types) {
             val type = NodeType(typeNode)
-            val typeName = TypeName(name, false)
-            updateNamespaceEntry(destNamespace, typeName, type).toRight {
+            updateNamespaceEntry(destNamespace, TypeName(name, false), type).toRight {
                 return Either.left(Exception("update namespace entry failed: " +
-                        "namespace=$destNamespace, name=$typeName", it))
+                        "namespace=$destNamespace, name=$name", it))
             }
         }
+
+        for ((name, typeNode) in ArrayList(types.entrySet())) {
+            decodeNamespaceEntry(destNamespace, TypeName(name, false), typeNode).toRight {
+                return Either.left(Exception("decode namespace entry failed: " +
+                        "namespace=$destNamespace, name=$name", it))
+            }
+        }
+
         return Either.right(Unit)
     }
 
@@ -71,9 +72,10 @@ class TypeResolver {
             sourceNamespace: Namespace,
             name: TypeName
     ): Either<Exception, TupleNamespaceType> {
+        val desc = "sourceNamespace=$sourceNamespace, name=$name"
+
         val resolveRet = sourceNamespace.resolve(name) ?:
-                return Either.left(Exception("name not found: " +
-                        "name=$name, sourceNamespace=$sourceNamespace"))
+                return Either.left(Exception("name not found: $desc"))
         var (entryNamespace, entryType) = resolveRet
 
         when (entryType) {
@@ -81,8 +83,7 @@ class TypeResolver {
                 val nodeType = entryType
                 val decodedType = decodeNamespaceEntry(entryNamespace, name, nodeType.node).toRight {
                     return Either.left(Exception("decode type failed: " +
-                            "name=$name, sourceNamespace=$sourceNamespace, " +
-                            "entryNamespace=$entryNamespace", it))
+                            "entryNamespace=$entryNamespace, $desc", it))
                 }
                 entryType = decodedType
             }
@@ -219,6 +220,10 @@ class TypeResolver {
                                 "name=$name, $desc", it
                 ))
             }
+        }
+
+        decodeTypes(classDefNode.types, classNamespace).toRight {
+            return Either.left(Exception("decode types failed", it))
         }
 
         val fields = LinkedHashMap<String, Type>()
