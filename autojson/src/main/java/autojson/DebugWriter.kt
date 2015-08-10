@@ -46,6 +46,14 @@ class DebugWriter {
         stringBuilder.append("\n")
         indented = false
     }
+    fun writeMap(map: Map<String, DebugWritable>) {
+        indent("{", "}") {
+            for ((key, value) in map) {
+                writeLine("$key=", false)
+                writeObject(value)
+            }
+        }
+    }
 
     fun getString(): String {
         return stringBuilder.toString()

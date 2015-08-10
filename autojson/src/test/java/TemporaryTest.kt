@@ -1,4 +1,4 @@
-import autojson.SourceFileReader
+import autojson.node.SourceFileReader
 import autojson.json.Json
 import autojson.node.SourceFileNode
 import autojson.type.Namespace

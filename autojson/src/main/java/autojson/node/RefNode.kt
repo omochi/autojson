@@ -22,7 +22,7 @@ class RefNode(
 
     companion object {
         fun fromJson(json: Json, pos: NodePos): Either<Exception, RefNode> {
-            val name = json["name"].asString ?:
+            val name = json[1].asString ?:
                     return Either.left(Exception(
                             "name is null, pos=$pos"))
             return Either.right(RefNode(name, pos))

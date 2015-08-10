@@ -1,4 +1,4 @@
-package autojson
+package autojson.node
 
 import autojson.core.Either
 import autojson.core.MutableBox
@@ -20,7 +20,8 @@ class SourceFileReader {
         val jsonStr = file.readText()
         val json = Json.parse(jsonStr).toRight{
             return Either.left(Exception(
-                "json parse failed", it)) }
+                    "json parse failed", it))
+        }
 
         return SourceFileNode.fromJson(json, NodePos(file, emptyList()))
     }

@@ -13,12 +13,8 @@ class SourceFileNode (
         pos: NodePos
 ): Node(pos) {
     override fun writeDebugBody(w: DebugWriter) {
-        w.indent("types={", "}") {
-            for ((name, type) in types) {
-                w.writeLine("$name=", false)
-                w.writeObject(type)
-            }
-        }
+        w.writeLine("types=", false)
+        w.writeMap(types)
     }
 
     companion object {

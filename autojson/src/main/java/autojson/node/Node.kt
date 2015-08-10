@@ -4,6 +4,7 @@ import autojson.DebugWritable
 import autojson.DebugWriter
 import autojson.core.Either
 import autojson.json.Json
+import autojson.json.jsonArrayOf
 import autojson.json.jsonObjectOf
 import autojson.json.toJson
 import java.util.*
@@ -31,20 +32,17 @@ abstract class Node: DebugWritable {
             val string = json.asString
             if (string != null) {
                 return typeFromJson(
-                        jsonObjectOf(
-                                "type" to "Ref".toJson(),
-                                "name" to string.toJson()
-                        ),
+                        jsonArrayOf("Ref".toJson(), string.toJson()),
                         pos
                 )
             }
 
-            if (json.valueType != Json.ValueType.Map) {
+            if (json.valueType != Json.ValueType.List) {
                 return Either.left(Exception(
                         "invalid type json: ${json.valueType}, pos=$pos"))
             }
 
-            val objectTypeJson = json["type"]
+            val objectTypeJson = json[0]
             val objectType = objectTypeJson.asString ?:
                     return Either.left(Exception("type is ${objectTypeJson}, pos=$pos"))
             when (objectType) {

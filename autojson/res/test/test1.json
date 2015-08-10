@@ -1,145 +1,102 @@
 {
 	"types": {
-		"Box": {
-			"type": "Class",
+		"Box": ["Class", {
 			"let": ["T"],
 			"fields": {
 				"value": "T"
 			}
-		},
-		"UBox": {
-			"type": "Class",
+		}],
+		"UBox": ["Class", {
 			"let": ["U"],
 			"fields": {
 				"value": "U"
 			}
-		},
-		"Hoge": {
-			"type": "Class",
+		}],
+		"Hoge": ["Class", {
+			"types": {
+				"Kon": ["Class", {
+					"types": {
+						"Ban": ["Class", {}]
+					},
+					"fields": {
+						"name": "String"
+					}
+				}]
+			},
 			"fields": {
 				"a": "Int",
 				"b": "Long",
-				"innerPiyo": {
-					"type": "Class",
+				"innerPiyo": ["Class", {
 					"fields": {
 						"c": "Int",
-						"innerKero": {
-							"type": "Class",
+						"innerKero": ["Class", {
 							"fields": {
 								"d": "Float"
 							}
-						}
+						}]
 					}
-				},
-				"intBox": {
-					"type": "Apply",
-					"target": "Box",
-					"params": ["Int"]
-				}
+				}],
+				"intBox": ["Apply", "Box", ["Int"]]
 			}
-		},
-		"Fuga": {
-			"type": "Class",
+		}],
+		"Fuga": ["Class", {
 			"let": ["T"],
 			"fields": {
 				"a": "String",
 				"b": "T",
-				"innerNyaa": {
-					"type": "Class",
+				"innerNyaa": ["Class", {
 					"fields": {
 						"c": "Int",
 						"d": "T",
-						"innerKero": {
-							"type": "Class",
+						"innerKero": ["Class", {
 							"fields": {
 								"d": "Float"
 							}
-						}
+						}]
 					}
-				},
-				"intBox": {
-					"type": "Apply",
-					"target": "Box",
-					"params": ["Double"]
-				},
-				"anonyBox1": {
-					"type": "Apply",
-					"target": "Box",
-					"params": [
-						{
-							"type": "Class",
-							"fields": {
-								"name": "String"
-							}
+				}],
+				"intBox": ["Apply", "Box", ["Double"]],
+				"anonyBox1": ["Apply", "Box", [
+					["Class", {
+						"fields": {
+							"name": "String"
 						}
-					]
-				},
-				"anonyBox2": {
-					"type": "Apply",
-					"target": "UBox",
-					"params": [
-						{
-							"type": "Class",
-							"fields": {
-								"name": "T"
-							}
+					}]
+				]],
+				"anonyBox2": ["Apply", "UBox", [
+					["Class", {
+						"fields": {
+							"name": "T"
 						}
-					]
-				},
-				"instantContainer": {
-					"type": "Apply",
-					"target": {
-						"type": "Class",
+					}]
+				]],
+				"instantContainer": ["Apply",
+					["Class", {
 						"let": ["E"],
 						"fields": {
 							"element": "E",
 							"tee": "T"
 						}
-					},
-					"params": [
-						{
-							"type": "Class",
+					}],
+					[
+						["Class", {
 							"fields": {
 								"aaa": "Int"
 							}
-						}
+						}]
 					]
-				}
+				]
 			}
-		},
+		}],
 		"HogeAlias": "Hoge",
 		"HogeAliasAlias": "HogeAlias",
 		"FugaAlias": "Fuga",
 		"FugaAliasAlias": "FugaAlias",
-		"BoolFuga": {
-			"type": "Apply",
-			"target": "Fuga",
-			"params": ["Bool"]
-		},
-		"BoolFugaAlias": {
-			"type": "Apply",
-			"target": "FugaAlias",
-			"params": ["Bool"]
-		},
-		"BoolFugaAliasAlias": {
-			"type": "Apply",
-			"target": "FugaAliasAlias",
-			"params": ["Bool"]
-		},
-		"IntFuga": {
-			"type": "Apply",
-			"target": "Fuga",
-			"params": ["Int"]
-		},
-		"IntFugaAlias": {
-			"type": "Apply",
-			"target": "FugaAlias",
-			"params": ["Int"]
-		},
-		"IntFugaAliasAlias": {
-			"type": "Apply",
-			"target": "FugaAliasAlias",
-			"params": ["Int"]
-		}
+		"BoolFuga": ["Apply", "Fuga", ["Bool"]],
+		"BoolFugaAlias": ["Apply", "FugaAlias", ["Bool"]],
+		"BoolFugaAliasAlias": ["Apply", "FugaAliasAlias", ["Bool"]],
+		"IntFuga": ["Apply", "Fuga", ["Int"]],
+		"IntFugaAlias": ["Apply", "FugaAlias", ["Int"]],
+		"IntFugaAliasAlias": ["Apply", "FugaAliasAlias", ["Int"]]
 	}
 }
