@@ -10,6 +10,10 @@ class RefType (
         val namespace: Namespace,
         val name: TypeName
 ): Type() {
+    override fun toString(): String {
+        return "RefType(name=$name, namespace=$namespace)"
+    }
+
     constructor(tuple: TupleNamespaceTypeName):
             this(tuple.namespace, tuple.name)
     {
@@ -22,7 +26,7 @@ class RefType (
 
     val namespaceNameTuple: TupleNamespaceTypeName = TupleNamespaceTypeName(namespace, name)
 
-    override fun applySubsts(substs: List<NamespaceEntrySubst>): RefType {
-        return RefType(namespaceNameTuple.applySubsts(substs))
+    override fun applySubsts(subst: NameSubstTable): RefType {
+        return RefType(namespaceNameTuple.applySubsts(subst))
     }
 }

@@ -9,11 +9,15 @@ import autojson.DebugWriter
 class PolyType (
 
 ): Type() {
+    override fun toString(): String {
+        return "PolyType@${System.identityHashCode(this)}"
+    }
+
     override fun writeDebugBody(w: DebugWriter) {
         w.writeLine("id=${System.identityHashCode(this)}")
     }
 
-    override fun applySubsts(substs: List<NamespaceEntrySubst>): PolyType {
+    override fun applySubsts(subst: NameSubstTable): PolyType {
         return this
     }
 }

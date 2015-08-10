@@ -9,12 +9,23 @@ import java.util.*
  * Created by omochi on 15/08/02.
  */
 
-class Namespace(
-        val parent: Namespace?,
-        val key: TypeName,
-        private val mutableTable: MutableMap<TypeName, Type> = LinkedHashMap()
-): DebugWritable {
-    val table: Map<TypeName, Type> = mutableTable
+class Namespace: DebugWritable {
+    val parent: Namespace?
+    val key: TypeName
+    val table: Map<TypeName, Type>
+            get() = mutableTable
+
+    private val mutableTable: MutableMap<TypeName, Type>
+
+    constructor(
+            parent: Namespace?,
+            key: TypeName,
+            table: Map<TypeName, Type> = emptyMap()
+    ) {
+        this.parent = parent
+        this.key = key
+        this.mutableTable = LinkedHashMap(table)
+    }
 
     val level: Int
         get() {
@@ -30,7 +41,8 @@ class Namespace(
         get() {
             val parentKeys = parent?.debugKeys ?: emptyList()
 
-            val (builtIns, users) = mutableTable.entrySet().partition {
+            val entries = mutableTable.entrySet()
+            val (builtIns, users) = entries.partition {
                 val type = it.value
                 if (type is ClassType) {
                     type.isBuiltIn
@@ -49,7 +61,7 @@ class Namespace(
             typeStrs.addAll(
                     users.takeLast(3).map { it.key.toString() }
             )
-            val selfKey = key.toString() + typeStrs.joinToString(", ", "{", "}")
+            val selfKey = "$key(${entries.size()})" + typeStrs.joinToString(", ", "[", "]")
 
             val keys = parentKeys + listOf(selfKey)
             return keys

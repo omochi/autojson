@@ -16,7 +16,5 @@ abstract class Type: DebugWritable {
     }
     abstract fun writeDebugBody(w: DebugWriter)
 
-    abstract fun applySubsts(substs: List<NamespaceEntrySubst>): Type
-
-
+    abstract fun applySubsts(subst: NameSubstTable): Type
 }

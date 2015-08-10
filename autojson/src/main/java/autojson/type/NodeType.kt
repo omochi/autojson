@@ -10,6 +10,10 @@ import autojson.node.Node
 class NodeType (
         val node: Node
 ): Type() {
+    override fun toString(): String {
+        return "NodeType(node pos=${node.pos})"
+    }
+
     override fun equals(other: Any?): Boolean {
         if (other !is NodeType) {
             return false
@@ -21,7 +25,7 @@ class NodeType (
         w.writeLine("pos=${node.pos}")
     }
 
-    override fun applySubsts(substs: List<NamespaceEntrySubst>): NodeType {
+    override fun applySubsts(subst: NameSubstTable): NodeType {
         return this
     }
 }

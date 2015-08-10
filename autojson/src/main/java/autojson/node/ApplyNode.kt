@@ -11,16 +11,15 @@ import autojson.json.Json
 class ApplyNode(
         val name: String?,
         val target: Node,
-        val params: Map<String, Node>,
+        val params: List<Node>,
         pos: NodePos
 ): Node(pos) {
     override fun writeDebugBody(w: DebugWriter) {
         w.writeLine("name=$name")
         w.writeLine("target=", false)
         w.writeObject(target)
-        w.indent("params={", "}") {
-            for ((name, param) in params) {
-                w.writeLine("$name=", false)
+        w.indent("params=[", "]") {
+            for (param in params) {
                 w.writeObject(param)
             }
         }
@@ -37,14 +36,12 @@ class ApplyNode(
                 return Either.left(Exception("target is null, pos=$pos"))
             }
 
-            val params = json["params"].asMap?.map {
-                val name = it.getKey()
-                val param = Node.typeFromJson(it.value, pos + "params" + name).toRight {
+            val params = json["params"].asList?.withIndex()?.map {
+                val (index, paramNode) = it
+                Node.typeFromJson(paramNode, pos + "params[$index]").toRight {
                     return Either.left(Exception("param is null: name=$name, pos=$pos", it))
                 }
-                name to param
-            }?.toMap() ?:
-                    return Either.left(Exception("params is null, pos=$pos"))
+            } ?: return Either.left(Exception("params is null, pos=$pos"))
 
             return Either.right(ApplyNode(
                     name,

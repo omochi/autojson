@@ -348,9 +348,18 @@ class TypeResolver {
         }
         val targetNamespace = targetTuple.namespace
         val targetType = targetTuple.type
+        if (targetType !is ClassType) {
+            return Either.left(Exception("invalid target type: " +
+                    "type=${targetType.javaClass}, $desc"))
+        }
+        val targetClass = targetType
+        desc = "targetClass=${targetClass.name}, " +
+                "$desc"
 
-        val params = LinkedHashMap<String, Type>()
-        for ((paramName, paramNode) in applyNode.params) {
+        val targetParamNames = ArrayList(targetClass.params.keySet())
+        val params = ArrayList<Type>()
+        for ((paramIndex, paramNode) in applyNode.params.withIndex()) {
+            val paramName = targetParamNames[paramIndex]
             val param = decodeApplyParam(
                     classHintName,
                     paramName,
@@ -359,50 +368,35 @@ class TypeResolver {
             ).toRight {
                 return Either.left(it)
             }
-            println("decodeApply classHintName=$classHintName, name=$paramName, param=${param.toDebugString()}")
-            params[paramName] = param
+            params.add(param)
         }
 
-        when (targetType) {
-            is ClassType -> {
-                val targetClass = targetType
-
-                desc = "targetClass=${targetClass.name}, " +
-                        "params=$params, " +
-                        "$desc"
-
-                val appliedClassName = getAppliedClassName(targetClass, params).toRight {
-                    return Either.left(Exception("get applied class name failed: " +
-                            "$desc", it))
-                }
-                val definedApplied = targetNamespace.table[appliedClassName]
-                if (definedApplied != null) {
-                    if (definedApplied !is ClassType) {
-                        throw Exception("defined applied class is not class type: " +
-                                "${definedApplied.javaClass}, $desc")
-                    }
-                    return Either.right(TupleNamespaceClassType(targetNamespace, definedApplied))
-                }
-
-                val applied = evalApply(targetClass, params).toRight {
-                    return Either.left(Exception("eval apply failed: " +
-                            "target=${targetClass.name}, " +
-                            "params=${params}, $desc", it))
-                }
-
-                updateNamespaceEntry(targetNamespace, applied.name, applied).toRight {
-                    return Either.left(Exception("update namespace entry failed: " +
-                            "namespace=$targetNamespace, " +
-                            "name=${applied.name}, $desc", it))
-                }
-
-                return Either.right(TupleNamespaceClassType(targetNamespace, applied))
-            }
-            else -> {
-                return Either.left(Exception("invalid target type: " +
-                        "type=${targetType.javaClass}, $desc"))
-            }
+        val appliedClassName = getAppliedClassName(targetClass, params).toRight {
+            return Either.left(Exception("get applied class name failed: " +
+                    "$desc", it))
         }
+        val definedApplied = targetNamespace.table[appliedClassName]
+        if (definedApplied != null) {
+            if (definedApplied !is ClassType) {
+                throw Exception("defined applied class is not class type: " +
+                        "${definedApplied.javaClass}, $desc")
+            }
+            return Either.right(TupleNamespaceClassType(targetNamespace, definedApplied))
+        }
+
+        val applied = evalApply(targetClass, params).toRight {
+            return Either.left(Exception("eval apply failed: " +
+                    "target=${targetClass.name}, " +
+                    "params=${params}, $desc", it))
+        }
+
+        updateNamespaceEntry(targetNamespace, applied.name, applied).toRight {
+            return Either.left(Exception("update namespace entry failed: " +
+                    "namespace=$targetNamespace, " +
+                    "name=${applied.name}, $desc", it))
+        }
+
+        return Either.right(TupleNamespaceClassType(targetNamespace, applied))
     }
 
     fun decodeApplyTarget(
@@ -483,7 +477,7 @@ class TypeResolver {
         ).toRight {
             return Either.left(Exception("decode type node failed: " +
                     "targetName=$targetName, " +
-                    "paramName=$paramName," +
+                    "paramName=$paramName, " +
                     "paramNode pos=${paramNode.pos}, " +
                     "namespace=$namespace", it))
         }
@@ -513,20 +507,19 @@ class TypeResolver {
 
     fun getAppliedClassName(
             target: ClassType,
-            params: Map<String, Type>
+            params: List<Type>
     ): Either<Exception, TypeName> {
         val desc="target=${target.name}, params=$params"
 
-        val paramTypeNames = LinkedHashMap<String, TypeName>()
-        for (paramName in target.params.keySet()) {
-            val param = params[paramName]!!
+        val paramTypeNames = ArrayList<TypeName>()
+        for ((index, param) in params.withIndex()) {
             val paramTypeName = getApplyParamTypeName(param).toRight {
                 return Either.left(Exception(
-                        "get apply apram type name failed: " +
-                                "paramName=$paramName, $desc", it
+                        "get apply param type name failed: " +
+                                "index=$index, $desc", it
                 ))
             }
-            paramTypeNames[paramName] = paramTypeName
+            paramTypeNames.add(paramTypeName)
         }
 
         return Either.right(TypeName(target.name.name, target.name.anonymous, paramTypeNames))
@@ -534,18 +527,23 @@ class TypeResolver {
 
     fun evalApply(
             target: ClassType,
-            params: Map<String, Type>
+            params: List<Type>
     ): Either<Exception, ClassType> {
         var desc="target name=${target.name}, " +
                 "params=$params"
 
-        for (targetParam in target.params.keySet()) {
-            if (targetParam !in params.keySet()) {
-                return Either.left(Exception(
-                        "target param not specified: " +
-                        "target param=$targetParam, $desc"))
-            }
+        if (target.params.size() != params.size()) {
+            return Either.left(Exception(
+                    "target params does not match applying params: " +
+                            "target=${target.params}, applying=${params}"
+            ))
         }
+
+        val paramMap = LinkedHashMap<String, Type>()
+        for ((index, targetParamName) in target.params.keySet().withIndex()) {
+            paramMap[targetParamName] = params[index]
+        }
+
         val targetParentNamespace = target.namespace.parent!!
 
         val appliedClassName = getAppliedClassName(target, params).toRight {
@@ -553,26 +551,21 @@ class TypeResolver {
         }
         desc = "appliedClassName=$appliedClassName, $desc"
 
-        val substs = ArrayList<NamespaceEntrySubst>()
-        substs.add(NamespaceEntrySubst(
-                TupleNamespaceTypeName(targetParentNamespace, target.name),
+        val subst = NameSubstTable()
+        subst.table[TupleNamespaceTypeName(targetParentNamespace, target.name)] =
                 TupleNamespaceTypeName(targetParentNamespace, appliedClassName)
-        ))
 
-        val appliedClass = target.applySubsts(substs)
-        //  型パラを閉じる
+        val appliedClass = target.applySubsts(subst)
+        //  外向きの型パラを閉じる
         appliedClass.params.clear()
-        //  型パラの右辺値を変更
-        for ((name, type) in ArrayList(appliedClass.namespace.table.entrySet())) {
-            var replace: Type? = null
-            for (paramEntry in params.entrySet()) {
-                if (name == TypeName(paramEntry.key, false)) {
-                    replace = paramEntry.value
-                    break
-                }
-            }
-            appliedClass.namespace.setEntry(name, replace ?: type)
+        //  内部の型パラの右辺値を変更
+        for ((paramName, param) in paramMap) {
+            appliedClass.namespace.setEntry(
+                    TypeName(paramName, false),
+                    param
+            )
         }
+
         return Either.right(appliedClass)
     }
 

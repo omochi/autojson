@@ -9,7 +9,7 @@ import java.util.*
 class TypeName (
         val name: String,
         val anonymous: Boolean,
-        val params: Map<String, TypeName> = emptyMap()
+        val params: List<TypeName> = emptyList()
 ) {
     constructor(other: TypeName):
         this(other.name, other.anonymous, other.params)
@@ -41,7 +41,7 @@ class TypeName (
 
     override fun toString(): String {
         val paramsStr = if (params.size() > 0) {
-            params.map { "${it.key}=${it.value}" }.joinToString(", ", prefix = "<", postfix = ">")
+            params.map { "${it}" }.joinToString(", ", prefix = "<", postfix = ">")
         } else {
             ""
         }

@@ -14,6 +14,9 @@ class ClassType(
         val namespace: Namespace,
         val fields: Map<String, Type>
 ): Type() {
+    override fun toString(): String {
+        return "ClassType(name=$name)"
+    }
 
     override fun writeDebugBody(w: DebugWriter) {
         w.writeLine("name=$name")
@@ -47,30 +50,28 @@ class ClassType(
     val parentNamespaceNameTuple: TupleNamespaceTypeName =
             TupleNamespaceTypeName(namespace.parent!!, name)
 
-    override fun applySubsts(substs: List<NamespaceEntrySubst>): ClassType {
-        val (newParentNamespace, newClassName) = parentNamespaceNameTuple.applySubsts(substs)
+    override fun applySubsts(subst: NameSubstTable): ClassType {
+        val (newParentNamespace, newClassName) = parentNamespaceNameTuple.applySubsts(subst)
 
         val newClassNamespace = Namespace(
                 newParentNamespace,
                 newClassName
         )
-        val newSubsts = ArrayList(substs)
+        val newSubst = NameSubstTable(subst)
         for ((name, value) in namespace.table.entrySet()) {
-            newSubsts.add(NamespaceEntrySubst(
-                    TupleNamespaceTypeName(namespace, name),
+            newSubst.table[TupleNamespaceTypeName(namespace, name)] =
                     TupleNamespaceTypeName(newClassNamespace, TypeName(name))
-            ))
         }
 
         for ((name, value) in namespace.table.entrySet()) {
-            val (appliedNamespace, appliedName) = TupleNamespaceTypeName(namespace, name).applySubsts(newSubsts)
-            val appliedValue = value.applySubsts(newSubsts)
+            val (appliedNamespace, appliedName) = TupleNamespaceTypeName(namespace, name).applySubsts(newSubst)
+            val appliedValue = value.applySubsts(newSubst)
 
             appliedNamespace.setEntry(appliedName, appliedValue)
         }
 
         val newClassFields = fields.mapValues {
-            it.value.applySubsts(newSubsts)
+            it.value.applySubsts(newSubst)
         }
 
         return ClassType(

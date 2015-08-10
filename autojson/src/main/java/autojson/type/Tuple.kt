@@ -19,13 +19,8 @@ data class TupleNamespaceTypeName(
         val name: TypeName
 ) {
     fun applySubsts(
-            substs: List<NamespaceEntrySubst>
+            subst: NameSubstTable
     ): TupleNamespaceTypeName {
-        for (subst in substs) {
-            if (this == subst.source) {
-                return subst.dest
-            }
-        }
-        return this
+        return subst.table[this] ?: this
     }
 }

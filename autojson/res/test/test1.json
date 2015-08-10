@@ -34,9 +34,7 @@
 				"intBox": {
 					"type": "Apply",
 					"target": "Box",
-					"params": {
-						"T": "Int"
-					}
+					"params": ["Int"]
 				}
 			}
 		},
@@ -62,33 +60,31 @@
 				"intBox": {
 					"type": "Apply",
 					"target": "Box",
-					"params": {
-						"T": "Double"
-					}
+					"params": ["Double"]
 				},
 				"anonyBox1": {
 					"type": "Apply",
 					"target": "Box",
-					"params": {
-						"T": {
+					"params": [
+						{
 							"type": "Class",
 							"fields": {
 								"name": "String"
 							}
 						}
-					}
+					]
 				},
 				"anonyBox2": {
 					"type": "Apply",
 					"target": "UBox",
-					"params": {
-						"U": {
+					"params": [
+						{
 							"type": "Class",
 							"fields": {
 								"name": "T"
 							}
 						}
-					}
+					]
 				},
 				"instantContainer": {
 					"type": "Apply",
@@ -100,14 +96,14 @@
 							"tee": "T"
 						}
 					},
-					"params": {
-						"E": {
+					"params": [
+						{
 							"type": "Class",
 							"fields": {
 								"aaa": "Int"
 							}
 						}
-					}
+					]
 				}
 			}
 		},
@@ -118,44 +114,32 @@
 		"BoolFuga": {
 			"type": "Apply",
 			"target": "Fuga",
-			"params": {
-				"T": "Bool"
-			}
+			"params": ["Bool"]
 		},
 		"BoolFugaAlias": {
 			"type": "Apply",
 			"target": "FugaAlias",
-			"params": {
-				"T": "Bool"
-			}
+			"params": ["Bool"]
 		},
 		"BoolFugaAliasAlias": {
 			"type": "Apply",
 			"target": "FugaAliasAlias",
-			"params": {
-				"T": "Bool"
-			}
+			"params": ["Bool"]
 		},
 		"IntFuga": {
 			"type": "Apply",
 			"target": "Fuga",
-			"params": {
-				"T": "Int"
-			}
+			"params": ["Int"]
 		},
 		"IntFugaAlias": {
 			"type": "Apply",
 			"target": "FugaAlias",
-			"params": {
-				"T": "Int"
-			}
+			"params": ["Int"]
 		},
 		"IntFugaAliasAlias": {
 			"type": "Apply",
 			"target": "FugaAliasAlias",
-			"params": {
-				"T": "Int"
-			}
+			"params": ["Int"]
 		}
 	}
 }
