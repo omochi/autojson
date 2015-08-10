@@ -51,7 +51,7 @@ class Either<L, R> constructor(
     inline fun <T: Any> mapLeft (
             mapper: (value: L)-> T
     ): Either<T, R> {
-        return switch(
+        switch(
                 { return Either.left(mapper(it)) },
                 { return Either.right(it) }
         )
@@ -59,7 +59,7 @@ class Either<L, R> constructor(
     inline fun <T: Any> mapRight (
             mapper: (value: R)-> T
     ): Either<L, T> {
-        return switch(
+        switch(
                 { return Either.left(it) },
                 { return Either.right(mapper(it)) }
         )
@@ -68,7 +68,7 @@ class Either<L, R> constructor(
     inline fun toRight(
             mapper: (value: L)-> R
     ): R {
-        return switch(
+        switch(
                 { return mapper(it) },
                 { return it }
         )
@@ -76,7 +76,7 @@ class Either<L, R> constructor(
     inline fun toLeft(
             mapper: (value: R)-> L
     ): L {
-        return switch(
+        switch(
                 { return it },
                 { return mapper(it) }
         )

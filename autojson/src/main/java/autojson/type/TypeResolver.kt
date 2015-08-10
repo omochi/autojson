@@ -32,7 +32,7 @@ class TypeResolver {
         }
 
         for (name in ArrayList(namespace.table.keySet())) {
-            val decodeRet = getDecodedNamespaceEntry(namespace, name).toRight {
+            getDecodedNamespaceEntry(namespace, name).toRight {
                 return Either.left(Exception("get decoded namespace entry failed: " +
                         "name=$name, namespace=$namespace", it))
             }

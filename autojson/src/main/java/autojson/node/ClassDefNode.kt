@@ -35,13 +35,13 @@ class ClassDefNode (
             val name = json["name"].asString
 
             val fields = json["fields"].asMap?.map {
-                val name = it.key
-                val type = Node.typeFromJson(it.value, pos + "fields" + name).toRight {
+                val fieldName = it.key
+                val type = Node.typeFromJson(it.value, pos + "fields" + fieldName).toRight {
                     return Either.left(Exception(
-                            "read field failed: name=$name, pos=$pos", it
+                            "read field failed: name=$fieldName, pos=$pos", it
                     ))
                 }
-                name to type
+                fieldName to type
             }?.toMap() ?: emptyMap()
 
             return Either.right(ClassDefNode(let, name, fields, pos))
