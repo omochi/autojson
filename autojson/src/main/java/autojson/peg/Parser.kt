@@ -2,6 +2,7 @@ package autojson.peg
 
 import java.util.*
 import kotlin.text.Regex
+import kotlin.text.RegexOption
 
 /**
  * Created by omochi on 15/08/11.
@@ -22,7 +23,7 @@ abstract class Parser<out T> {
         return ret
     }
 
-    abstract fun doParse(source: Source): Result<T>
+    protected abstract fun doParse(source: Source): Result<T>
 
     fun <U> map(mapper: (Ok<T>)-> Ok<U>): Parser<U> {
         return object : Parser<U>() {
@@ -61,13 +62,13 @@ fun literal(literal: String): Parser<String> {
     }
 }
 
-fun empty(): Parser<Unit> {
-    return object : Parser<Unit>() {
+fun <T> empty(value: T): Parser<T> {
+    return object : Parser<T>() {
         override fun toString(): String {
             return "empty()"
         }
-        override fun doParse(source: Source): Result<Unit> {
-            return Ok(source, source, Unit)
+        override fun doParse(source: Source): Result<T> {
+            return Ok(source, source, value)
         }
     }
 }
@@ -88,7 +89,8 @@ fun dot(): Parser<Char> {
     }
 }
 
-fun regex(regex: Regex): Parser<String> {
+fun regex(pattern: String, options: Set<RegexOption> = emptySet()): Parser<String> {
+    val regex = Regex("^$pattern", options)
     return object : Parser<String>() {
         override fun toString(): String {
             return "regex($regex)"
@@ -97,6 +99,9 @@ fun regex(regex: Regex): Parser<String> {
         override fun doParse(source: Source): Result<String> {
             val matchRet = regex.match(source.asSequence()) ?:
                     return Error(source, "not matched: $this")
+            if (matchRet.range.start != 0) {
+                return Error(source, "not matched: $this")
+            }
             val ret = source.read(matchRet.value.length())!!
             return Ok(source, ret.source, ret.string)
         }
@@ -165,18 +170,18 @@ fun <T> ref(capture: ()-> Parser<T>): Parser<T> {
 
 suppress("BASE_WITH_NULLABLE_UPPER_BOUND")
 fun <T> Parser<T>.opt(): Parser<T?> {
-    return choice(this, empty().mapValue { null })
+    return choice(this, empty(null))
 }
 
 fun <T> Parser<T>.zeroOrMore(): Parser<List<T>> {
-    val tail: Parser<List<T>>
+    var tail: Parser<List<T>> = empty(emptyList<T>())
 
     tail = choice(
             seq(
                     this.mapValue { listOf(it) },
                     ref { tail }
             ).mapValue { it.flatten() },
-            empty().mapValue { emptyList<T>() })
+            empty(emptyList<T>()))
 
     return tail
 }

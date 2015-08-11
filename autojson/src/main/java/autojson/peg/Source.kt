@@ -10,6 +10,13 @@ class Source(
         val line: Int,
         val column: Int
 ) {
+    constructor(string: String): this(
+            string,
+            0,
+            0,
+            0
+    ){}
+
     override fun hashCode(): Int {
         var hash = 1
         hash = (hash * 37) + System.identityHashCode(string)
