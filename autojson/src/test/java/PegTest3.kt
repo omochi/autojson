@@ -72,4 +72,21 @@ public class PegTest3 {
                 ))
         )
     }
+    Test public fun test2() {
+        val parser = createParser()
+        val ret = parser.parse(Source("(1)"))
+        assertThat(ret, `is`(instanceOf(javaClass<peg.Ok<*>>())))
+        val retOk = ret as peg.Ok
+        assertThat(retOk.value, `is`(
+                listOf<Any>(
+                        listOf(listOf(listOf("1")))
+                )
+        ))
+    }
+    Test public fun test3() {
+        //  メモ化を外すと計算量が爆発するのがわかる
+        val parser = createParser()
+        val ret = parser.parse(Source("(((((((((((1)))))))))))"))
+        assertThat(ret, `is`(instanceOf(javaClass<peg.Ok<*>>())))
+    }
 }
